@@ -5,17 +5,22 @@ import Control.Monad
 import Data.Time.Units
 import DBus.Notify
 
-message content = do
+message handle content = do
   client <- connectSession
   let fullMessage = blankNote { summary = content, body = Just $ Text content}
-  notification <- notify client fullMessage
-  return ()
+  notification <- replace client handle fullMessage
+  return notification
 
-work = (threadDelay $ fromIntegral (toMicroseconds (25 :: Minute))) >> message "work done"
-play = (threadDelay $ fromIntegral (toMicroseconds (5 :: Minute))) >> message "play done"
+start = do
+  client <- connectSession
+  let fullMessage = blankNote { summary = "Start", body = Just $ Text "Start"}
+  handle <- notify client fullMessage
+  return handle
 
-session = work >> play
+work handle = (threadDelay $ fromIntegral (toMicroseconds (25 :: Minute))) >> message handle "work done"
+play handle = (threadDelay $ fromIntegral (toMicroseconds (5 :: Minute))) >> message handle "play done"
+
+session handle = work(handle) >>= play
 
 main :: IO ()
-main = do
-  replicateM 4 session >> return ()
+main = start >>= session >>= session >>= session >>= session >> return ()
